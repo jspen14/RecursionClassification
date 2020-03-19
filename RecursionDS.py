@@ -5,7 +5,7 @@ import pandas as pd
 from skimage import io
 import numpy as np
 from torch.utils.data import Dataset
-from torchvision import transforms as trfm
+from torchvision import transforms
 # from torchvision import transforms, utils, datasets
 import re
 import random
@@ -100,9 +100,12 @@ class RecursionDataset(Dataset):
 
         # Apply transformation
         if self.transform != None:
-            toPil = trfm.ToPILImage()
-            randTransform = trfm.RandomOrder(self.transform)
-            toTensor = trfm.ToTensor()
-            imageTensor = toTensor(randTransform(toPil(totalTensor)))
+            toPil = transforms.ToPILImage()
+            randTransform = transforms.RandomOrder(self.transform)
+            toTensor = transforms.ToTensor()
+            tensorHalves = torch.split(totalTensor, 3, dim=0)
+            for half in tensorHalves:
+              half = toTensor(randTransform(toPil(half)))
+            totalTensor = torch.cat(tensorHalves, dim=0)
 
         return totalTensor.float(), sirnaTensor.float()
