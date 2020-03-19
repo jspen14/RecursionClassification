@@ -101,7 +101,7 @@ class RecursionDataset(Dataset):
         # Apply transformation
         if self.transform != None:
             toPil = transforms.ToPILImage()
-            randTransform = transforms.RandomOrder(self.transform)
+            randTransform = transforms[random.randint(0,len(transforms)-1]
             toTensor = transforms.ToTensor()
             tensorHalves = torch.split(totalTensor, 3, dim=0)
             for half in tensorHalves:
