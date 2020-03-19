@@ -170,14 +170,15 @@ for epoch in range(n_epochs):
       phase_loss = running_loss / len(dataloader.dataset)
       phase_acc = running_corrects.double() / len(dataloader.dataset)
 
-      loop.set_description('epoch: {}/{}, {} Loss: {:.4f}, {} Accuracy: {:.4f}'.format(epoch + 1, n_epochs, phase, phase_loss, phase, phase_acc))
-
-              # deep copy the model
-      if phase == 'val' and phase_acc > best_acc:
-          best_acc = phase_acc
-          best_model_wts = copy.deepcopy(model.state_dict())
-
+      loop.set_description('epoch: {}/{}, {} Loss: {:.4f}, {} Accuracy: {:.4f}'.format(epoch + 1, n_epochs, phase, phase_loss, phase, phase_acc)) 
       loop.update(1)
+    loop.close()
+
+            # deep copy the model
+    if phase == 'val' and phase_acc > best_acc:
+        best_acc = phase_acc
+        best_model_wts = copy.deepcopy(model.state_dict())
+
 
     # Save loss and accuracy for reporting
     if phase == 'train':
@@ -187,7 +188,6 @@ for epoch in range(n_epochs):
         val_losses.append(phase_loss)
         val_acc.append(phase_acc.item())
 
-    loop.close()
 
 
 
