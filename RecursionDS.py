@@ -72,40 +72,47 @@ class RecursionDataset(Dataset):
         pathParts = self.csv.iloc[idx,:]
         pathGen = os.path.join(self.root_dir, pathParts['experiment'], pathParts['plate'])
         filenameGen = pathParts['well']+'_'+pathParts['site']+'_w'
+        
+        doubleTensor = []
+        for site in range(1,3):
+            site_name = 's'+str(site)
+            filenameGen = pathParts['well']+'_'+site_name+'_w'
+            for i in range(1,7):
+                filenameFull = filenameGen+str(i)+'.png'
+                pathFull = os.path.join(pathGen, filenameFull)
 
-        for i in range(1,7):
-            filenameFull = filenameGen+str(i)+'.png'
-            pathFull = os.path.join(pathGen, filenameFull)
+                if not os.path.isfile(pathFull):
+                    print("Path: ", pathFull)
+                    return torch.zeros(size=(0,1)), torch.zeros(size=(0,1))
 
-            if not os.path.isfile(pathFull):
-                print("Path: ", pathFull)
-                return torch.zeros(size=(0,1)), torch.zeros(size=(0,1))
+                image = io.imread(pathFull)
+                if i == 1:
+                    totalTensor = torch.from_numpy(image).unsqueeze(0)
+                else:
+                    imageTensor = torch.from_numpy(image).unsqueeze(0)
+                    totalTensor = torch.cat( (totalTensor, imageTensor), 0)
 
-            image = io.imread(pathFull)
-            if i == 1:
-                totalTensor = torch.from_numpy(image).unsqueeze(0)
-            else:
-                imageTensor = torch.from_numpy(image).unsqueeze(0)
-                totalTensor = torch.cat( (totalTensor, imageTensor), 0)
+            try:
+                sirna = self.csv.iloc[idx,:].loc['sirna']
+            except:
+                sirna = 1139
 
-        try:
-            sirna = self.csv.iloc[idx,:].loc['sirna']
-        except:
-            sirna = 1139
+            if sirna=='UNTREATED': sirna = 1138
+            else: sirna = float(re.search('[0-9]+', sirna).group())
+            sirnaTensor = torch.tensor([sirna])
+            #print("tT: ", totalTensor.shape, " sT:", sirnaTensor.shape)
 
-        if sirna=='UNTREATED': sirna = 1138
-        else: sirna = float(re.search('[0-9]+', sirna).group())
-        sirnaTensor = torch.tensor([sirna])
-        #print("tT: ", totalTensor.shape, " sT:", sirnaTensor.shape)
-
-        # Apply transformation
-        if self.transform != None:
-            toPil = transforms.ToPILImage()
-            randTransform = transforms[random.randint(0,len(transforms)-1]
-            toTensor = transforms.ToTensor()
-            tensorHalves = torch.split(totalTensor, 3, dim=0)
-            for half in tensorHalves:
-              half = toTensor(randTransform(toPil(half)))
-            totalTensor = torch.cat(tensorHalves, dim=0)
+            # Apply transformation
+            if self.transform != None:
+                toPil = transforms.ToPILImage()
+                randTransform = transforms[random.randint(0,len(transforms)-1)]
+                toTensor = transforms.ToTensor()
+                tensorHalves = torch.split(totalTensor, 3, dim=0)
+                for half in tensorHalves:
+                  half = toTensor(randTransform(toPil(half)))
+                totalTensor = torch.cat(tensorHalves, dim=0)
+            
+            doubleTensor.append(totalTensor)
+        doubleTensor = torch.cat((doubleTensor[0],doubleTensor[1]), dim=0)
 
         return totalTensor.float(), sirnaTensor.float()
