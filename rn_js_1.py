@@ -3,7 +3,7 @@ from __future__ import print_function, division
 # Set variables for testing
 num_workers = 30
 batch_size = 32
-n_epochs = 1
+n_epochs = 20
 old_n_epochs = 0
 lr = 3e-4
 save_path = f'./model/resnet18_{n_epochs+old_n_epochs}'
@@ -11,12 +11,14 @@ if old_n_epochs == 0:
   load_path = ''
 else:
   load_path = f'./model/resnet18_{old_n_epochs}'
-freeze = True
-prop_train=0.8
+freeze = False
+prop_train = 0.8
+transformations = True
 
 print("model: resnet18")
 print('num_workers:', num_workers)
 print('batch_size:', batch_size)
+print('learning rate:', lr)
 print('n_epochs:', n_epochs)
 print('load_path:', load_path)
 print('save_path:', save_path)
@@ -24,7 +26,19 @@ print('freeze layers:', freeze)
 print('Proportion used for training:', prop_train)
 
 import multiprocessing
-print('CPUs:', multiprocessing.cpu_count(), '\n')
+print('CPU cores:', multiprocessing.cpu_count(), '\n')
+
+from torchvision import transforms, utils, datasets
+if transformations == True:
+  #rotations = [transforms.RandomRotation((90,90)),transforms.RandomRotation((180,180)),transforms.RandomRotation((270,270)), transforms.RandomRotation((0,0))]
+  #transformList = [transforms.RandomHorizontalFlip(), transforms.RandomChoice(rotations)]
+  transformList = [transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomRotation((90,90))]),
+                   transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomRotation((180,180))]),
+                   transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomRotation((270,270))]),
+                   transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomRotation((0,0))])]
+else:
+  transformList = None
+print('Transformations:', transformations)
 
 import torch
 import torch.nn as nn
@@ -32,7 +46,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 import numpy as np
-from torchvision import transforms, utils, datasets
 import torchvision.models as models
 from tqdm import tqdm
 import pdb
@@ -54,11 +67,17 @@ from RecursionDS import RecursionDataset
 
 assert torch.cuda.is_available() # GPU must be available
 
-train_dataset = RecursionDataset(csv_file1='../../recursion_data/train-labels/train.csv', root_dir='../../recursion_data/train-data', csv_file2='../../recursion_data/train-labels/train_controls.csv', phase = 'train', prop_train=prop_train)
-val_dataset = RecursionDataset(csv_file1='../../recursion_data/train-labels/train.csv', root_dir='../../recursion_data/train-data', csv_file2='../../recursion_data/train-labels/train_controls.csv', phase = 'val', prop_train=prop_train)
+train_dataset = RecursionDataset(csv_file1='../recursion_data/train-labels/train.csv',
+                                root_dir='../recursion_data/train-data',
+                                csv_file2='../recursion_data/train-labels/train_controls.csv',
+                                phase = 'train', prop_train=prop_train, transform=transformList)
+val_dataset = RecursionDataset(csv_file1='../recursion_data/train-labels/train.csv',
+                                root_dir='../recursion_data/train-data',
+                                csv_file2='../recursion_data/train-labels/train_controls.csv',
+                                phase = 'val', prop_train=prop_train)
 
 model = models.resnet18(pretrained=False)
-model.load_state_dict(torch.load('../BaseModels/resnet18-5c106cde.pth'))
+model.load_state_dict(torch.load('models_original/resnet18_original'))
 
 # Freeze all layers if true
 if freeze:
@@ -112,7 +131,7 @@ val_losses = []
 val_acc = []
 
 for epoch in range(n_epochs):
-  
+
   # Each epoch has a training and validation phase
   for phase in ['train', 'val']:
     if phase == 'train':
@@ -153,17 +172,17 @@ for epoch in range(n_epochs):
       running_corrects += torch.sum(predicted == y_truth.data)
 
       phase_loss = running_loss / len(dataloader.dataset)
-      phase_acc = running_corrects.double() / len(dataloader.dataset) 
+      phase_acc = running_corrects.double() / len(dataloader.dataset)
 
-      loop.set_description('epoch: {}/{}, {} Loss: {:.4f}, {} Accuracy: {:.4f}'.format(epoch + 1, n_epochs, phase, phase_loss, phase, phase_acc)) 
-	  
+      loop.set_description('epoch: {}/{}, {} Loss: {:.4f}, {} Accuracy: {:.4f}'.format(epoch + 1, n_epochs, phase, phase_loss, phase, phase_acc))
+
               # deep copy the model
       if phase == 'val' and phase_acc > best_acc:
           best_acc = phase_acc
           best_model_wts = copy.deepcopy(model.state_dict())
-          
+
       loop.update(1)
-    
+
     # Save loss and accuracy for reporting
     if phase == 'train':
         train_losses.append(phase_loss)
@@ -171,8 +190,10 @@ for epoch in range(n_epochs):
     else:
         val_losses.append(phase_loss)
         val_acc.append(phase_acc.item())
-    
+
     loop.close()
+
+
 
 time_elapsed = time.time() - since
 print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
@@ -187,8 +208,8 @@ report = pd.DataFrame({
   'val_loss': val_losses,
   'val_acc': val_acc
 })
-report.to_csv('report.csv')
-  
+report.to_csv(f'report_{old_n_epochs+n_epochs}.csv')
+
 # Model Saving
 state = {
     "epoch": n_epochs,
