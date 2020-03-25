@@ -30,10 +30,8 @@ print('CPU cores:', multiprocessing.cpu_count(), '\n')
 
 from torchvision import transforms, utils, datasets
 if transformations == True:
-  #rotations = [transforms.RandomRotation((90,90)),transforms.RandomRotation((180,180)),transforms.RandomRotation((270,270)), transforms.RandomRotation((0,0))]
-  #transformList = [transforms.RandomHorizontalFlip(), transforms.RandomChoice(rotations)]
   transformList = [transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomRotation((90,90))]),
-                   transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomRotation((180,180))]),
+                   transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomRotation((180,180)]),
                    transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomRotation((270,270))]),
                    transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomRotation((0,0))])]
 else:
@@ -67,13 +65,13 @@ from RecursionDS import RecursionDataset
 
 assert torch.cuda.is_available() # GPU must be available
 
-train_dataset = RecursionDataset(csv_file1='../recursion_data/train-labels/train.csv',
-                                root_dir='../recursion_data/train-data',
-                                csv_file2='../recursion_data/train-labels/train_controls.csv',
+train_dataset = RecursionDataset(csv_file1='../../recursion_data/train-labels/train.csv',
+                                root_dir='../../recursion_data/train-data',
+                                csv_file2='../../recursion_data/train-labels/train_controls.csv',
                                 phase = 'train', prop_train=prop_train, transform=transformList)
-val_dataset = RecursionDataset(csv_file1='../recursion_data/train-labels/train.csv',
-                                root_dir='../recursion_data/train-data',
-                                csv_file2='../recursion_data/train-labels/train_controls.csv',
+val_dataset = RecursionDataset(csv_file1='../../recursion_data/train-labels/train.csv',
+                                root_dir='../../recursion_data/train-data',
+                                csv_file2='../../recursion_data/train-labels/train_controls.csv',
                                 phase = 'val', prop_train=prop_train)
 
 model = models.resnet18(pretrained=False)
@@ -174,14 +172,14 @@ for epoch in range(n_epochs):
       phase_loss = running_loss / len(dataloader.dataset)
       phase_acc = running_corrects.double() / len(dataloader.dataset)
 
-      loop.set_description('epoch: {}/{}, {} Loss: {:.4f}, {} Accuracy: {:.4f}'.format(epoch + 1, n_epochs, phase, phase_loss, phase, phase_acc))
-
-              # deep copy the model
-      if phase == 'val' and phase_acc > best_acc:
-          best_acc = phase_acc
-          best_model_wts = copy.deepcopy(model.state_dict())
-
+      loop.set_description('epoch: {}/{}, {} Loss: {:.4f}, {} Accuracy: {:.4f}'.format(epoch + 1, n_epochs, phase, phase_loss, phase, phase_acc)) 
       loop.update(1)
+    loop.close()
+
+            # deep copy the model
+    if phase == 'val' and phase_acc > best_acc:
+        best_acc = phase_acc
+        best_model_wts = copy.deepcopy(model.state_dict())
 
     # Save loss and accuracy for reporting
     if phase == 'train':
@@ -190,9 +188,6 @@ for epoch in range(n_epochs):
     else:
         val_losses.append(phase_loss)
         val_acc.append(phase_acc.item())
-
-    loop.close()
-
 
 
 time_elapsed = time.time() - since
