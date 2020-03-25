@@ -74,16 +74,42 @@ val_dataset = RecursionDataset(csv_file1='../../recursion_data/train-labels/trai
                                 csv_file2='../../recursion_data/train-labels/train_controls.csv',
                                 phase = 'val', prop_train=prop_train)
 
+class RecursionNetwork(nn.Module):
+  def __init__(self):
+    super(RecursionNetwork, self).__init__()
+    self.model = models.resnet18(pretrained=False)
+    model.load_state_dict(torch.load('models_original/resnet18_original'))
+    weights_conv1 = self.model.conv1.weight
+    self.model.conv1 = nn.Conv2d(6, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+    self.model.conv1.weight = nn.parameter.Parameter(torch.cat((weights_conv1, weights_conv1), dim=1))
+    #self.model.fc = nn.Linear(in_features=512, out_features=test_dataset.num_classes, bias=True)
+    self.model.fc = nn.Identity() #Feature extraction
+
+    self.fc = nn.Linear(in_features=512*2, out_features=train_dataset.n_classes, bias=True)
+  
+  def forward(self, x):
+    x1, x2 = torch.split(x, 6, dim=1)
+    feat1, feat2 = self.model(x1), self.model(x2)
+    feat = torch.cat((feat1, feat2), dim=1)
+    y_hat = self.fc(feat)
+
+    return y_hat
+
+'''TESTING UPDATE
 model = models.resnet18(pretrained=False)
 model.load_state_dict(torch.load('models_original/resnet18_original'))
+'''
+model = RecursionNetwork()
 
 # Freeze all layers if true
 if freeze:
   for param in model.parameters():
     param.requires_grad = False
+'''TESTING UPDATE
 # Replace first and last layer
 model.conv1 = nn.Conv2d(6, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
 model.fc = nn.Linear(in_features=512, out_features=train_dataset.n_classes, bias=True)
+'''
 
 #collect which parameters to update to send to the optimizer (if not freezing, send all the params)
 params_to_update = model.parameters()
@@ -128,18 +154,16 @@ train_acc = []
 val_losses = []
 val_acc = []
 
+# Each epoch has a training and validation phase
+for phase in ['train', 'val']:
+  if phase == 'train':
+        model.train()  # Set model to training mode
+        dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=num_workers)
+  else:
+        model.eval()   # Set model to evaluate mode
+        dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=num_workers)
+
 for epoch in range(n_epochs):
-
-  # Each epoch has a training and validation phase
-  for phase in ['train', 'val']:
-    if phase == 'train':
-          model.train()  # Set model to training mode
-          dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=num_workers)
-    else:
-          model.eval()   # Set model to evaluate mode
-          dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=num_workers)
-
-
     running_loss = 0.0
     running_corrects = 0
 
