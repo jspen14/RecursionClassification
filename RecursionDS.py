@@ -104,8 +104,9 @@ class RecursionDataset(Dataset):
             randTransform = self.transform[random.randint(0,len(self.transform)-1)]
             toTensor = transforms.ToTensor()
             tensorHalves = torch.split(totalTensor, 3, dim=0)
-            for half in tensorHalves:
-              half = toTensor(randTransform(toPil(half)))
+            for i in range(len(tensorHalves)):
+                half = tensorHalves[i]
+                half = toTensor(randTransform(toPil(half)))
             totalTensor = torch.cat(tensorHalves, dim=0)
 
         return totalTensor.float(), sirnaTensor.float()

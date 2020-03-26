@@ -75,7 +75,7 @@ val_dataset = RecursionDataset(csv_file1='../../recursion_data/train-labels/trai
                                 phase = 'val', prop_train=prop_train)
 
 model = models.resnet18(pretrained=False)
-model.load_state_dict(torch.load('../BaseModels/resnet18-5c106cde.pth'))
+model.load_state_dict(torch.load('models_original/resnet18_original'))
 
 # Freeze all layers if true
 if freeze:
@@ -181,7 +181,6 @@ for epoch in range(n_epochs):
         best_acc = phase_acc
         best_model_wts = copy.deepcopy(model.state_dict())
 
-
     # Save loss and accuracy for reporting
     if phase == 'train':
         train_losses.append(phase_loss)
@@ -189,8 +188,6 @@ for epoch in range(n_epochs):
     else:
         val_losses.append(phase_loss)
         val_acc.append(phase_acc.item())
-
-
 
 
 time_elapsed = time.time() - since
