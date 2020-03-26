@@ -31,7 +31,7 @@ print('CPU cores:', multiprocessing.cpu_count(), '\n')
 from torchvision import transforms, utils, datasets
 if transformations == True:
   transformList = [transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomRotation((90,90))]),
-                   transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomRotation((180,180)]),
+                   transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomRotation((180,180))]),
                    transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomRotation((270,270))]),
                    transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomRotation((0,0))])]
 else:
@@ -65,13 +65,13 @@ from RecursionDS import RecursionDataset
 
 assert torch.cuda.is_available() # GPU must be available
 
-train_dataset = RecursionDataset(csv_file1='../../recursion_data/train-labels/train.csv',
-                                root_dir='../../recursion_data/train-data',
-                                csv_file2='../../recursion_data/train-labels/train_controls.csv',
+train_dataset = RecursionDataset(csv_file1='../recursion_data/train-labels/train.csv',
+                                root_dir='../recursion_data/train-data',
+                                csv_file2='../recursion_data/train-labels/train_controls.csv',
                                 phase = 'train', prop_train=prop_train, transform=transformList)
-val_dataset = RecursionDataset(csv_file1='../../recursion_data/train-labels/train.csv',
-                                root_dir='../../recursion_data/train-data',
-                                csv_file2='../../recursion_data/train-labels/train_controls.csv',
+val_dataset = RecursionDataset(csv_file1='../recursion_data/train-labels/train.csv',
+                                root_dir='../recursion_data/train-data',
+                                csv_file2='../recursion_data/train-labels/train_controls.csv',
                                 phase = 'val', prop_train=prop_train)
 
 class RecursionNetwork(nn.Module):
@@ -154,18 +154,21 @@ train_acc = []
 val_losses = []
 val_acc = []
 
-# Each epoch has a training and validation phase
-for phase in ['train', 'val']:
-  if phase == 'train':
-        model.train()  # Set model to training mode
-        dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=num_workers)
-  else:
-        model.eval()   # Set model to evaluate mode
-        dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=num_workers)
 
 for epoch in range(n_epochs):
-    running_loss = 0.0
-    running_corrects = 0
+  running_loss = 0.0
+  running_corrects = 0
+
+  dataloader_train = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=num_workers)
+  dataloader_val = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=num_workers)
+  # Each epoch has a training and validation phase
+  for phase in ['train', 'val']:
+    if phase == 'train':
+          model.train()  # Set model to training mode
+          dataloader = dataloader_train
+    else:
+          model.eval()   # Set model to evaluate mode
+          dataloader = dataloader_val
 
     loop = tqdm(total=len(dataloader), position=0, file=sys.stdout)
 
