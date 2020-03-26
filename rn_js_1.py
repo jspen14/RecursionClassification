@@ -31,7 +31,7 @@ print('CPU cores:', multiprocessing.cpu_count(), '\n')
 from torchvision import transforms, utils, datasets
 if transformations == True:
   transformList = [transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomRotation((90,90))]),
-                   transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomRotation((180,180)]),
+                   transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomRotation((180,180))]),
                    transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomRotation((270,270))]),
                    transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomRotation((0,0))])]
 else:
